@@ -8,11 +8,10 @@ import {
   Send, 
   Layers, 
   MessageSquare, 
-  Terminal,
-  Zap,
-  Globe,
-  Mail,
-  Linkedin,
+  Terminal, 
+  Zap, 
+  Globe, 
+  Mail, 
   MessageCircle
 } from "lucide-react";
 
