@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PitchMint - Tailored proposals from job posts</title>
+    <meta
+      name="description"
+      content="PitchMint helps freelancers turn job posts into tailored proposals in minutes."
+    />
+    <meta name="theme-color" content="#f5efe5" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Instrument+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="/" aria-label="PitchMint home">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-name">PitchMint</span>
+        </a>
+        <a class="header-cta" href="#app">Open app</a>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero">
+        <div class="container hero-shell">
+          <div class="hero-copy">
+            <p class="eyebrow">Proposal writing, without the blank-page feeling</p>
+            <h1>Turn job posts into tailored freelance proposals.</h1>
+            <p class="subheadline">
+              PitchMint reads the brief, pulls out what matters, and helps you respond with a clear,
+              client-ready proposal that sounds like you.
+            </p>
+            <div class="cta-row" id="cta">
+              <a class="btn btn-primary" href="#app">Start free</a>
+              <a class="btn btn-secondary" href="#features">See features</a>
+            </div>
+            <p class="trust-copy">Built for freelancers who want to pitch faster and stay personal.</p>
+          </div>
+
+          <div class="hero-preview" aria-label="Proposal preview">
+            <div class="preview-card">
+              <div class="preview-pill">New proposal draft</div>
+              <h2>Landing page redesign for SaaS startup</h2>
+              <div class="preview-block">
+                <p class="preview-label">Client needs</p>
+                <ul>
+                  <li>Responsive marketing page</li>
+                  <li>Fast turnaround with clear milestones</li>
+                  <li>Confident copy and modern visual polish</li>
+                </ul>
+              </div>
+              <div class="preview-block">
+                <p class="preview-label">PitchMint opening</p>
+                <p>
+                  I can help you launch a focused landing page that feels polished, loads quickly,
+                  and gives your team a flexible foundation for future campaigns.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="app-section" id="app">
+        <div class="container">
+          <div class="app-shell">
+            <div class="section-head app-head">
+              <p class="section-kicker">MVP app</p>
+              <h2>Generate a tailored proposal draft in one place</h2>
+              <p class="section-copy">
+                Paste the opportunity, add your strongest skills, choose the platform and tone, and
+                PitchMint will assemble a clean first draft on the page.
+              </p>
+            </div>
+
+            <div class="app-grid">
+              <form class="app-form" id="proposal-form">
+                <div class="form-intro field-full">
+                  <p class="form-kicker">Proposal input</p>
+                  <p class="form-copy">Add the project details and generate a polished first draft.</p>
+                </div>
+
+                <div class="field field-full">
+                  <label for="job-post">Job post</label>
+                  <textarea
+                    id="job-post"
+                    name="jobPost"
+                    rows="10"
+                    placeholder="Paste the full job post here..."
+                  >We are looking for a freelance web designer to create a responsive landing page for our SaaS product. The ideal candidate can balance clear messaging, modern UI, and fast delivery. Please share relevant examples and your proposed timeline.</textarea>
+                </div>
+
+                <div class="field">
+                  <label for="skills">Your skills</label>
+                  <textarea
+                    id="skills"
+                    name="skills"
+                    rows="6"
+                    placeholder="Add your relevant skills, wins, and experience..."
+                  >Responsive web design, conversion-focused landing pages, HTML, CSS, JavaScript, fast turnaround, client communication</textarea>
+                </div>
+
+                <div class="field field-select">
+                  <label for="platform">Platform</label>
+                  <select id="platform" name="platform">
+                    <option>Upwork</option>
+                    <option>Fiverr</option>
+                    <option>LinkedIn</option>
+                    <option>Email Outreach</option>
+                  </select>
+                </div>
+
+                <div class="field field-select">
+                  <label for="tone">Tone</label>
+                  <select id="tone" name="tone">
+                    <option>Direct</option>
+                    <option selected>Warm</option>
+                    <option>Premium</option>
+                  </select>
+                </div>
+
+                <div class="form-actions">
+                  <button class="btn btn-primary" id="generate-button" type="submit">
+                    <span class="button-text">Generate Proposal</span>
+                    <span class="button-spinner" aria-hidden="true"></span>
+                  </button>
+                  <p class="form-note">
+                    Demo mode for now. This structure is ready for real AI output later.
+                  </p>
+                </div>
+              </form>
+
+              <div class="output-grid" aria-live="polite">
+                <article class="output-card output-card-accent">
+                  <div class="output-head">
+                    <p class="output-label">Opener</p>
+                    <button class="copy-button" type="button" data-copy-target="output-opener">
+                      Copy
+                    </button>
+                  </div>
+                  <p class="output-meta">A concise introduction that matches the selected tone.</p>
+                  <p id="output-opener" class="output-content">
+                    Hi, I would love to help with your landing page. Based on the brief, it sounds
+                    like you need someone who can move quickly while still keeping the experience
+                    polished and conversion-focused.
+                  </p>
+                </article>
+
+                <article class="output-card output-card-large">
+                  <div class="output-head">
+                    <p class="output-label">Proposal</p>
+                    <button class="copy-button" type="button" data-copy-target="output-proposal">
+                      Copy
+                    </button>
+                  </div>
+                  <p class="output-meta">Your main pitch, structured to feel specific and client-ready.</p>
+                  <p id="output-proposal" class="output-content">
+                    I can take this from brief to launch with a responsive layout, clear structure,
+                    and messaging that feels aligned with your product. My background in landing
+                    pages, front-end execution, and fast client delivery would let me build
+                    something clean, modern, and ready to iterate on.
+                  </p>
+                </article>
+
+                <article class="output-card">
+                  <div class="output-head">
+                    <p class="output-label">CTA</p>
+                    <button class="copy-button" type="button" data-copy-target="output-cta">
+                      Copy
+                    </button>
+                  </div>
+                  <p class="output-meta">A closing line that makes the next step easy.</p>
+                  <p id="output-cta" class="output-content">
+                    If the direction sounds right, I can share a suggested timeline and a few
+                    relevant examples to help you evaluate fit quickly.
+                  </p>
+                </article>
+
+                <article class="output-card">
+                  <div class="output-head">
+                    <p class="output-label">Questions for the client</p>
+                    <button class="copy-button" type="button" data-copy-target="output-questions">
+                      Copy
+                    </button>
+                  </div>
+                  <p class="output-meta">Useful questions that show care, clarity, and professionalism.</p>
+                  <ul id="output-questions" class="output-list output-content">
+                    <li>Do you already have brand copy and visual assets ready?</li>
+                    <li>What timeline are you targeting for the first draft?</li>
+                    <li>Are there any reference pages or competitors you want to borrow from?</li>
+                  </ul>
+                </article>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="features" id="features">
+        <div class="container">
+          <div class="section-head">
+            <p class="section-kicker">Core features</p>
+            <h2>Everything you need to go from brief to pitch</h2>
+          </div>
+
+          <div class="feature-grid">
+            <article class="feature-card">
+              <span class="feature-icon" aria-hidden="true">01</span>
+              <h3>Job post breakdown</h3>
+              <p>
+                Extracts deliverables, priorities, and constraints so you can respond to what the
+                client is actually asking for.
+              </p>
+            </article>
+
+            <article class="feature-card">
+              <span class="feature-icon" aria-hidden="true">02</span>
+              <h3>Tailored proposal drafts</h3>
+              <p>
+                Shapes your experience into a focused proposal with a strong intro, smart structure,
+                and relevant positioning.
+              </p>
+            </article>
+
+            <article class="feature-card">
+              <span class="feature-icon" aria-hidden="true">03</span>
+              <h3>Ready to edit and send</h3>
+              <p>
+                Gives you a polished first draft you can refine quickly instead of starting from
+                scratch every time.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script>
+      const form = document.getElementById("proposal-form");
+      const jobPostField = document.getElementById("job-post");
+      const skillsField = document.getElementById("skills");
+      const platformField = document.getElementById("platform");
+      const toneField = document.getElementById("tone");
+      const generateButton = document.getElementById("generate-button");
+      const buttonText = generateButton.querySelector(".button-text");
+      const copyButtons = document.querySelectorAll(".copy-button");
+      const formNote = document.querySelector(".form-note");
+
+      const openerOutput = document.getElementById("output-opener");
+      const proposalOutput = document.getElementById("output-proposal");
+      const ctaOutput = document.getElementById("output-cta");
+      const questionsOutput = document.getElementById("output-questions");
+      const outputCards = document.querySelectorAll(".output-card");
+
+      const toneProfiles = {
+        Direct: {
+          openerLead: "Hi, I can help with this.",
+          voice: "clear, efficient, and delivery-focused",
+          cta: "If this sounds aligned, I can send a quick outline and next-step plan today."
+        },
+        Warm: {
+          openerLead: "Hi, I would love to help with this project.",
+          voice: "collaborative, thoughtful, and easy to work with",
+          cta: "If this feels like the right fit, I can share relevant examples and a simple next-step plan."
+        },
+        Premium: {
+          openerLead: "Hello, this is exactly the kind of project I enjoy taking on.",
+          voice: "polished, strategic, and tailored to the end result",
+          cta: "If you would like, I can follow up with curated examples and a refined approach for execution."
+        }
+      };
+
+      const platformNotes = {
+        Upwork: "This version is shaped like a strong Upwork proposal.",
+        Fiverr: "This version is shaped like a concise Fiverr pitch.",
+        LinkedIn: "This version is shaped like a professional LinkedIn outreach message.",
+        "Email Outreach": "This version is shaped like a polished outreach email."
+      };
+
+      const platformClosers = {
+        Upwork: "I can also tighten this into an Upwork-ready version if needed.",
+        Fiverr: "I can also shorten this into a more buyer-friendly Fiverr format.",
+        LinkedIn: "I can also adapt this into a shorter LinkedIn follow-up.",
+        "Email Outreach": "I can also format this into a cleaner email version for outreach."
+      };
+
+      function cleanList(text) {
+        return text
+          .split(/[,\n]/)
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+
+      function summarizeJobPost(text) {
+        const compact = text.replace(/\s+/g, " ").trim();
+        if (!compact) return "a well-scoped freelance project";
+
+        const firstSentence = compact.split(/[.!?]/)[0].trim();
+        return firstSentence || compact.slice(0, 140);
+      }
+
+      function extractFocus(jobPost) {
+        const lowerPost = jobPost.toLowerCase();
+
+        if (lowerPost.includes("landing page")) return "a landing page that feels sharp and conversion-aware";
+        if (lowerPost.includes("website")) return "a website experience that feels modern and easy to navigate";
+        if (lowerPost.includes("design")) return "a polished design direction that supports the brief";
+        if (lowerPost.includes("copy")) return "messaging that feels clear, useful, and on-brand";
+        if (lowerPost.includes("developer") || lowerPost.includes("build")) {
+          return "a build process that is reliable, clear, and easy to collaborate on";
+        }
+
+        return "an outcome that feels tailored to your goals";
+      }
+
+      function getSkillHighlight(skills) {
+        if (!skills.length) return "relevant freelance experience";
+        if (skills.length === 1) return skills[0];
+        if (skills.length === 2) return skills[0] + " and " + skills[1];
+        return skills.slice(0, 3).join(", ");
+      }
+
+      function getTimelineLine(jobPost) {
+        const lowerPost = jobPost.toLowerCase();
+
+        if (lowerPost.includes("fast") || lowerPost.includes("quick") || lowerPost.includes("asap")) {
+          return "I understand speed matters here, so I would keep the process tight and communication proactive.";
+        }
+
+        if (lowerPost.includes("timeline") || lowerPost.includes("deadline")) {
+          return "I would make scope and milestones clear early so the timeline stays realistic.";
+        }
+
+        return "I would keep the work structured from the start so you have clarity on scope, progress, and next steps.";
+      }
+
+      function makeQuestions(jobPost, platform) {
+        const lowerPost = jobPost.toLowerCase();
+        const questions = [];
+
+        if (lowerPost.includes("timeline") || lowerPost.includes("deadline")) {
+          questions.push("What deadline or milestone schedule matters most for this project?");
+        } else {
+          questions.push("What timeline are you targeting for the first deliverable?");
+        }
+
+        if (lowerPost.includes("landing page") || lowerPost.includes("design")) {
+          questions.push("Do you already have brand assets, wireframes, or reference pages to work from?");
+        } else {
+          questions.push("Are there existing materials, examples, or workflows you want me to align with?");
+        }
+
+        if (platform === "Email Outreach") {
+          questions.push("Who is the best contact for follow-up once I send a draft or outline?");
+        } else {
+          questions.push("What would make this proposal feel like the strongest fit for your needs?");
+        }
+
+        return questions;
+      }
+
+      function getFormValues() {
+        return {
+          jobPost: jobPostField.value.trim(),
+          skills: cleanList(skillsField.value),
+          platform: platformField.value,
+          tone: toneField.value
+        };
+      }
+
+      function setLoadingState(isLoading) {
+        generateButton.disabled = isLoading;
+        generateButton.classList.toggle("is-loading", isLoading);
+        buttonText.textContent = isLoading ? "Generating..." : "Generate Proposal";
+        copyButtons.forEach((button) => {
+          button.disabled = isLoading;
+        });
+      }
+
+      function setFormNote(message, tone = "default") {
+        formNote.textContent = message;
+        formNote.dataset.tone = tone;
+      }
+
+      function syncOutputStates() {
+        const textTargets = [openerOutput, proposalOutput, ctaOutput];
+
+        textTargets.forEach((target) => {
+          const card = target.parentElement;
+          const hasText = target.textContent.trim().length > 0;
+          card.classList.toggle("is-empty", !hasText);
+        });
+
+        const hasQuestions = questionsOutput.querySelectorAll("li").length > 0;
+        questionsOutput.parentElement.classList.toggle("is-empty", !hasQuestions);
+      }
+
+      function setLoadingOutputs() {
+        outputCards.forEach((card) => {
+          card.classList.add("is-loading");
+          card.classList.remove("is-empty");
+        });
+
+        openerOutput.textContent = "Generating opener...";
+        proposalOutput.textContent = "Writing proposal draft...";
+        ctaOutput.textContent = "Preparing CTA...";
+        questionsOutput.innerHTML = "";
+
+        ["Reviewing scope...", "Matching tone...", "Preparing client questions..."].forEach((text) => {
+          const item = document.createElement("li");
+          item.textContent = text;
+          questionsOutput.appendChild(item);
+        });
+      }
+
+      function buildDemoProposal(input) {
+        const { jobPost, skills, platform, tone } = input;
+        const profile = toneProfiles[tone];
+        const summary = summarizeJobPost(jobPost);
+        const focus = extractFocus(jobPost);
+        const skillHighlight = getSkillHighlight(skills);
+        const timelineLine = getTimelineLine(jobPost);
+
+        const opener =
+          profile.openerLead +
+          " Based on your brief, it looks like you need help with " +
+          summary.charAt(0).toLowerCase() +
+          summary.slice(1) +
+          ", and I can bring a " +
+          profile.voice +
+          " approach to that work.";
+
+        const proposal =
+          platformNotes[platform] +
+          " My background in " +
+          skillHighlight +
+          " would let me build around " +
+          focus +
+          " instead of sending a generic response. " +
+          timelineLine +
+          " I would focus on delivering something that feels thoughtful, aligned with the brief, and straightforward for you to review.";
+
+        const cta = profile.cta + " " + platformClosers[platform];
+
+        return {
+          opener,
+          proposal,
+          cta,
+          questions: makeQuestions(jobPost, platform)
+        };
+      }
+
+      async function generateProposal(input) {
+        try {
+          const response = await fetch("/api/generate", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(input)
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => null);
+            throw new Error(errorData?.error || "Failed to generate proposal.");
+          }
+
+          setFormNote("Live backend connected. Generating with the server response.", "success");
+          return response.json();
+        } catch (error) {
+          setFormNote(
+            "Backend not reached. Showing demo output instead. Run npm start and open http://localhost:3000 for live generation.",
+            "warning"
+          );
+          return buildDemoProposal(input);
+        }
+      }
+
+      function renderProposal(result) {
+        openerOutput.textContent = result.opener;
+        proposalOutput.textContent = result.proposal;
+        ctaOutput.textContent = result.cta;
+
+        questionsOutput.innerHTML = "";
+        result.questions.forEach((question) => {
+          const item = document.createElement("li");
+          item.textContent = question;
+          questionsOutput.appendChild(item);
+        });
+
+        outputCards.forEach((card) => {
+          card.classList.remove("is-loading");
+        });
+
+        syncOutputStates();
+      }
+
+      async function copyContent(targetId, button) {
+        const target = document.getElementById(targetId);
+        if (!target) return;
+
+        let text = "";
+
+        if (target.tagName === "UL") {
+          text = Array.from(target.querySelectorAll("li"))
+            .map((item) => "- " + item.textContent)
+            .join("\n");
+        } else {
+          text = target.textContent.trim();
+        }
+
+        try {
+          await navigator.clipboard.writeText(text);
+          const originalText = button.textContent;
+          button.textContent = "Copied";
+
+          window.setTimeout(() => {
+            button.textContent = originalText;
+          }, 1200);
+        } catch (error) {
+          button.textContent = "Copy failed";
+
+          window.setTimeout(() => {
+            button.textContent = "Copy";
+          }, 1200);
+        }
+      }
+
+      async function handleGenerate(event) {
+        event.preventDefault();
+        const input = getFormValues();
+        setLoadingState(true);
+        setLoadingOutputs();
+
+        try {
+          const result = await generateProposal(input);
+          renderProposal(result);
+        } finally {
+          setLoadingState(false);
+        }
+      }
+
+      form.addEventListener("submit", handleGenerate);
+
+      copyButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          copyContent(button.dataset.copyTarget, button);
+        });
+      });
+
+      syncOutputStates();
+      setFormNote("Demo mode for now. This structure is ready for real AI output later.");
+    </script>
+  </body>
+</html>
