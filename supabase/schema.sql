@@ -63,3 +63,21 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- ────────────────────────────────────────────────
+-- PAYMENTS TABLE  (Stripe audit trail)
+-- ────────────────────────────────────────────────
+create table if not exists public.payments (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  stripe_session_id text not null unique,
+  pack_id text not null,
+  credits_added integer not null,
+  amount_cents integer not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.payments enable row level security;
+
+create policy "Users can view their own payments" on public.payments
+  for select using (auth.uid() = user_id);

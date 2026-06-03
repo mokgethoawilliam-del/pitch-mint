@@ -68,19 +68,25 @@ const pricingPreview = [
     name: "Starter",
     price: "$0",
     description: "For trying the workflow and shaping your first few proposals.",
-    highlight: false
+    highlight: false,
+    packId: "starter",
+    credits: 5
   },
   {
     name: "Freelancer",
     price: "$12",
     description: "For consistent outreach, sharper drafts, and faster client replies.",
-    highlight: true
+    highlight: true,
+    packId: "freelancer",
+    credits: 150
   },
   {
     name: "Studio",
     price: "$29",
     description: "For teams that want shared proposal patterns and a cleaner pipeline.",
-    highlight: false
+    highlight: false,
+    packId: "studio",
+    credits: 500
   }
 ];
 
@@ -414,17 +420,44 @@ export function FeaturesSection({ expanded = false }: { expanded?: boolean }) {
 }
 
 export function PricingSection({ expanded = false }: { expanded?: boolean }) {
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  const handleBuy = async (packId: string) => {
+    if (packId === "starter") {
+      window.location.href = "/app";
+      return;
+    }
+    setLoadingId(packId);
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packId })
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else if (data.error === 'Unauthorized') {
+        window.location.href = '/login?redirect=/pricing';
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
   return (
     <section className={expanded ? "" : "pt-28 sm:pt-32"}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <SectionEyebrow>Pricing preview</SectionEyebrow>
+          <SectionEyebrow>Pricing</SectionEyebrow>
           <h1 className={`${expanded ? "text-5xl sm:text-7xl" : "text-4xl sm:text-5xl"} mt-4 font-bold tracking-[-0.035em]`}>
-            Start light, grow into a proposal system.
+            Pay for what you use.<br />No subscriptions.
           </h1>
         </div>
         <p className="max-w-sm text-[#6B6B6B] leading-relaxed">
-          Early pricing direction. No payments are wired yet.
+          Credit packs that never expire.
         </p>
       </div>
 
@@ -432,7 +465,7 @@ export function PricingSection({ expanded = false }: { expanded?: boolean }) {
         {pricingPreview.map((plan) => (
           <article
             key={plan.name}
-            className={`rounded-[28px] p-7 border shadow-[0_18px_44px_-30px_rgba(0,0,0,0.35)] ${
+            className={`rounded-[28px] p-7 border shadow-[0_18px_44px_-30px_rgba(0,0,0,0.35)] flex flex-col ${
               plan.highlight
                 ? "bg-[#1A1A1A] text-white border-[#1A1A1A]"
                 : "bg-white/70 border-white"
@@ -449,12 +482,29 @@ export function PricingSection({ expanded = false }: { expanded?: boolean }) {
             <div className="mt-8 flex items-end gap-2">
               <span className="text-5xl font-bold tracking-[-0.04em]">{plan.price}</span>
               <span className={plan.highlight ? "pb-2 text-white/55" : "pb-2 text-[#8A857A]"}>
-                /mo
+                / {plan.credits} credits
               </span>
             </div>
-            <p className={`mt-5 leading-relaxed ${plan.highlight ? "text-white/70" : "text-[#6B6B6B]"}`}>
+            <p className={`mt-5 leading-relaxed flex-1 ${plan.highlight ? "text-white/70" : "text-[#6B6B6B]"}`}>
               {plan.description}
             </p>
+            <button
+              onClick={() => handleBuy(plan.packId)}
+              disabled={loadingId === plan.packId}
+              className={`mt-8 w-full rounded-2xl py-4 font-semibold transition-all flex items-center justify-center gap-2 ${
+                plan.highlight
+                  ? "bg-[#D8F3DD] text-[#1A1A1A] hover:bg-[#C2E8C8]"
+                  : "bg-black text-white hover:bg-[#333]"
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {loadingId === plan.packId ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : plan.packId === "starter" ? (
+                "Get Started Free"
+              ) : (
+                "Buy Credits"
+              )}
+            </button>
           </article>
         ))}
       </div>
@@ -625,8 +675,11 @@ export function Workspace() {
             <span className="rounded-full border border-black/[0.04] bg-white/70 px-4 py-2 text-xs font-bold text-[#8A857A]">
               {tone} tone
             </span>
-            <span className="rounded-full border border-[#E8F5E9] bg-emerald-50/50 px-4 py-2 text-xs font-bold text-[#2E7D32]">
+            <span className="rounded-full border border-[#E8F5E9] bg-emerald-50/50 px-4 py-2 text-xs font-bold text-[#2E7D32] flex items-center gap-2">
               {credits} credits left
+              <Link href="/pricing" className="underline hover:text-emerald-800 transition-colors">
+                Top up
+              </Link>
             </span>
             <span className={`rounded-full px-4 py-2 text-xs font-bold ${
               output ? "bg-[#E8F5E9] text-[#2E7D32]" : "bg-[#F8F6EF] text-[#8A857A]"
