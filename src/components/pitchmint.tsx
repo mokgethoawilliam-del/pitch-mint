@@ -1,13 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 import {
   ArrowRight,
   Check,
   CheckCircle2,
   Clipboard,
   Copy,
+  History as HistoryIcon,
+  Loader2,
+  LogOut,
   MoreHorizontal,
   Plus,
   Sparkles,
@@ -99,19 +104,6 @@ const sampleJobPost =
 const sampleSkills =
   "I design clean SaaS landing pages, write conversion-focused copy, and build responsive pages with clear sections, fast turnaround, and polished handoff notes.";
 
-const defaultOutput: ProposalOutput = {
-  opener:
-    "Hi there, I can help turn this brief into a polished proposal that feels specific to the client and clear about the next step.",
-  proposal:
-    "I would start by clarifying the project goals, then shape the deliverables into a focused plan with milestones, communication points, and a clean handoff. My goal would be to make the client feel understood from the first line while showing exactly how the work will move forward.",
-  cta: "If this direction feels right, I can share a concise plan and timeline next.",
-  questions: [
-    "What outcome matters most for this project?",
-    "Are there examples or competitors the client wants to reference?",
-    "What timeline or launch date should the proposal speak to?"
-  ]
-};
-
 function generateMockProposal({
   jobPost,
   skills,
@@ -161,6 +153,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 }
 
 export function Nav() {
+  const supabase = createClient();
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  };
+
   const linkClass =
     "hidden md:inline-flex bg-white/50 backdrop-blur-sm border border-black/5 px-5 py-2 rounded-full font-semibold text-sm hover:bg-white transition-all shadow-sm";
 
@@ -182,12 +196,31 @@ export function Nav() {
         <Link href="/pricing" className={linkClass}>
           Pricing
         </Link>
-        <Link
-          href="/app"
-          className="bg-white/50 backdrop-blur-sm border border-black/5 px-6 py-2 rounded-full font-semibold text-sm hover:bg-white transition-all shadow-sm"
-        >
-          Open app
-        </Link>
+        {user ? (
+          <>
+            <Link
+              href="/app"
+              className="bg-[#1A1A1A] px-6 py-2 rounded-full font-semibold text-sm text-white hover:bg-[#242424] transition-all shadow-sm"
+            >
+              Workspace
+            </Link>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="bg-white/50 backdrop-blur-sm border border-black/5 px-6 py-2 rounded-full font-semibold text-sm hover:bg-white transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Sign out
+            </button>
+          </>
+        ) : (
+          <Link
+            href="/login"
+            className="bg-white/50 backdrop-blur-sm border border-black/5 px-6 py-2 rounded-full font-semibold text-sm hover:bg-white transition-all shadow-sm"
+          >
+            Open app
+          </Link>
+        )}
       </div>
     </nav>
   );
@@ -453,30 +486,6 @@ export function FinalCta() {
   );
 }
 
-function OptionButton({
-  active,
-  children,
-  onClick
-}: {
-  active: boolean;
-  children: React.ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-2xl border px-4 py-3 text-sm font-bold transition-all ${
-        active
-          ? "border-[#1A1A1A] bg-[#1A1A1A] text-white shadow-[0_14px_28px_-18px_rgba(26,26,26,0.85)]"
-          : "border-black/[0.05] bg-white/70 text-[#6B6B6B] hover:bg-white hover:text-[#1A1A1A]"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -524,96 +533,279 @@ export function Workspace() {
   const [platform, setPlatform] = useState<Platform>("Upwork");
   const [tone, setTone] = useState<Tone>("Direct");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [output, setOutput] = useState<ProposalOutput>(defaultOutput);
-  const questionCopy = useMemo(() => output.questions.join("\n"), [output.questions]);
+  const [output, setOutput] = useState<ProposalOutput | null>(null);
+  const [provider, setProvider] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleGenerate = () => {
+  // Supabase Integration states
+  const [credits, setCredits] = useState<number>(5);
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [history, setHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState<boolean>(true);
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
+  
+  const questionCopy = useMemo(() => output?.questions.join("\n") ?? "", [output]);
+
+  const loadUserData = async () => {
+    try {
+      const res = await fetch("/api/user");
+      if (res.ok) {
+        const result = await res.json();
+        setUserEmail(result.user.email);
+        setCredits(result.user.credits);
+        setHistory(result.history);
+      }
+    } catch (err) {
+      console.error("Failed to load user info and history:", err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const handleGenerate = async () => {
     setIsGenerating(true);
-    window.setTimeout(() => {
-      setOutput(generateMockProposal({ jobPost, skills, platform, tone }));
+    setError(null);
+    setProvider(null);
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ jobPost, skills, platform, tone }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to generate proposal.");
+      }
+
+      setOutput(result.data);
+      setProvider(result.provider);
+      // Reload user data to capture decremented credits and new history item!
+      await loadUserData();
+      setSelectedHistoryId(null);
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message || "An unexpected error occurred during generation.");
+    } finally {
       setIsGenerating(false);
-    }, 900);
+    }
   };
 
   return (
-    <section>
-      <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <SectionEyebrow>App workspace</SectionEyebrow>
-          <h1 className="mt-4 max-w-3xl text-5xl sm:text-7xl font-bold tracking-[-0.035em]">
-            Generate a proposal that knows the client, platform, and tone.
-          </h1>
+    <section className="space-y-6">
+      {/* Workspace Header Panel */}
+      <div className="rounded-[32px] border border-white bg-white/65 px-5 py-4 shadow-[0_24px_70px_-50px_rgba(0,0,0,0.45)]">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#E8F5E9]">
+              <WandSparkles className="h-5 w-5 text-[#2E7D32]" />
+            </div>
+            <div>
+              <SectionEyebrow>App workspace</SectionEyebrow>
+              <h1 className="mt-1 text-2xl sm:text-3xl font-bold tracking-[-0.03em] flex items-center gap-2">
+                Proposal Generator
+                {userEmail && (
+                  <span className="text-xs font-medium text-[#8A857A]">
+                    ({userEmail})
+                  </span>
+                )}
+              </h1>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-black/[0.04] bg-white/70 px-4 py-2 text-xs font-bold text-[#8A857A]">
+              {platform}
+            </span>
+            <span className="rounded-full border border-black/[0.04] bg-white/70 px-4 py-2 text-xs font-bold text-[#8A857A]">
+              {tone} tone
+            </span>
+            <span className="rounded-full border border-[#E8F5E9] bg-emerald-50/50 px-4 py-2 text-xs font-bold text-[#2E7D32]">
+              {credits} credits left
+            </span>
+            <span className={`rounded-full px-4 py-2 text-xs font-bold ${
+              output ? "bg-[#E8F5E9] text-[#2E7D32]" : "bg-[#F8F6EF] text-[#8A857A]"
+            }`}>
+              {output ? `Draft ready (${provider})` : isGenerating ? "Generating..." : "Ready to generate"}
+            </span>
+          </div>
         </div>
-        <p className="max-w-md text-lg leading-relaxed text-[#6B6B6B]">
-          Mock local generation only. No backend, auth, database, or payments.
-        </p>
       </div>
 
-      <div className="rounded-[40px] border border-white bg-white/70 p-4 sm:p-5 shadow-[0_36px_90px_-52px_rgba(0,0,0,0.45)]">
-        <div className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="rounded-[32px] border border-black/[0.04] bg-[#FBFAF6] p-5 sm:p-6">
-            <div className="flex items-center gap-2">
-              <WandSparkles className="h-5 w-5 text-[#4CAF50]" />
-              <h2 className="text-xl font-bold tracking-[-0.02em]">Proposal inputs</h2>
+      {/* Grid: 3 Columns on XL screens (History + Form + Output) */}
+      <div className="grid gap-6 lg:grid-cols-[280px_1fr] xl:grid-cols-[280px_380px_minmax(0,1fr)]">
+        
+        {/* Column 1: History Sidebar */}
+        <aside className="rounded-[34px] border border-white bg-white/70 p-4 shadow-[0_30px_90px_-58px_rgba(0,0,0,0.15)] flex flex-col h-full min-h-[500px] max-h-[700px] lg:sticky lg:top-6 lg:self-start">
+          <div className="p-3 border-b border-black/[0.03] flex items-center justify-between">
+            <h2 className="text-sm font-bold tracking-[-0.02em] flex items-center gap-2">
+              <HistoryIcon className="w-4 h-4 text-[#4CAF50]" />
+              Saved Proposals
+            </h2>
+            <span className="text-[10px] font-bold bg-[#E8F5E9] text-[#2E7D32] px-2 py-0.5 rounded-full">
+              {history.length}
+            </span>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-2 mt-4 pr-1 scrollbar-thin max-h-[580px]">
+            {loadingHistory ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-400">
+                <Loader2 className="w-5 h-5 animate-spin mb-2 text-[#4CAF50]" />
+                <span className="text-[10px] font-semibold">Loading history...</span>
+              </div>
+            ) : history.length === 0 ? (
+              <div className="text-center py-16 text-zinc-400">
+                <p className="text-xs font-semibold">No saved proposals</p>
+                <p className="text-[10px] mt-1 text-[#8A857A] leading-normal">
+                  Your generations will automatically save to history.
+                </p>
+              </div>
+            ) : (
+              history.map((item) => {
+                const isSelected = selectedHistoryId === item.id;
+                const formattedDate = new Date(item.created_at).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                });
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedHistoryId(item.id);
+                      setJobPost(item.job_post);
+                      setSkills(item.skills);
+                      setPlatform(item.platform);
+                      setTone(item.tone);
+                      setOutput({
+                        opener: item.opener,
+                        proposal: item.proposal,
+                        cta: item.cta,
+                        questions: item.questions,
+                      });
+                      setProvider("Database History");
+                    }}
+                    className={`w-full text-left p-3.5 rounded-2xl border transition-all text-xs flex flex-col gap-1.5 cursor-pointer ${
+                      isSelected
+                        ? "border-[#4CAF50] bg-emerald-50/20 shadow-sm"
+                        : "border-black/[0.02] bg-white/50 hover:bg-white hover:border-black/[0.08]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span className="font-bold text-[#1A1A1A] bg-[#FBFAF6] px-2 py-0.5 rounded-full border border-black/[0.03] text-[10px]">
+                        {item.platform}
+                      </span>
+                      <span className="text-[9px] text-[#8A857A] font-semibold">{formattedDate}</span>
+                    </div>
+                    <p className="text-[#6B6B6B] line-clamp-2 leading-relaxed text-[11px]">
+                      {item.job_post}
+                    </p>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </aside>
+
+        {/* Column 2: Inputs Form */}
+        <aside className="rounded-[34px] border border-white bg-white/70 p-4 shadow-[0_30px_90px_-58px_rgba(0,0,0,0.15)] lg:sticky lg:top-6 lg:self-start">
+          <div className="rounded-[28px] border border-black/[0.04] bg-[#FBFAF6] p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold tracking-[-0.02em]">Proposal inputs</h2>
+                <p className="mt-1 text-sm leading-relaxed text-[#8A857A]">
+                  Add the brief, your edge, then choose where this pitch will be sent.
+                </p>
+              </div>
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white">
+                <Clipboard className="h-4 w-4 text-[#4CAF50]" />
+              </div>
             </div>
 
-            <div className="mt-6 space-y-5">
+            <div className="mt-6 space-y-4">
               <label className="block">
-                <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#8A857A]">
+                <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#8A857A]">
                   Job post
                 </span>
                 <textarea
                   value={jobPost}
                   onChange={(event) => setJobPost(event.target.value)}
-                  className="mt-3 w-full resize-none rounded-2xl border border-black/[0.04] bg-white p-5 min-h-[170px] text-base leading-relaxed text-[#1A1A1A] shadow-inner shadow-black/[0.02] transition-all focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500/30"
+                  className="mt-2 w-full resize-none rounded-2xl border border-black/[0.04] bg-white p-4 min-h-[168px] text-sm leading-relaxed text-[#1A1A1A] shadow-inner shadow-black/[0.02] transition-all focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500/30"
                 />
               </label>
 
               <label className="block">
-                <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#8A857A]">
+                <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#8A857A]">
                   Skills and experience
                 </span>
                 <textarea
                   value={skills}
                   onChange={(event) => setSkills(event.target.value)}
-                  className="mt-3 w-full resize-none rounded-2xl border border-black/[0.04] bg-white p-5 min-h-[132px] text-base leading-relaxed text-[#1A1A1A] shadow-inner shadow-black/[0.02] transition-all focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500/30"
+                  className="mt-2 w-full resize-none rounded-2xl border border-black/[0.04] bg-white p-4 min-h-[118px] text-sm leading-relaxed text-[#1A1A1A] shadow-inner shadow-black/[0.02] transition-all focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500/30"
                 />
               </label>
 
-              <div>
-                <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#8A857A]">
-                  Platform
-                </span>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  {platforms.map((item) => (
-                    <OptionButton key={item} active={platform === item} onClick={() => setPlatform(item)}>
-                      {item}
-                    </OptionButton>
-                  ))}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#8A857A]">
+                    Platform
+                  </span>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {platforms.map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => setPlatform(item)}
+                        className={`rounded-xl border px-3 py-2.5 text-xs font-bold transition-all ${
+                          platform === item
+                            ? "border-[#1A1A1A] bg-[#1A1A1A] text-white"
+                            : "border-black/[0.05] bg-white/70 text-[#6B6B6B] hover:bg-white hover:text-[#1A1A1A]"
+                        }`}
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#8A857A]">
-                  Tone
-                </span>
-                <div className="mt-3 grid grid-cols-3 gap-3">
-                  {tones.map((item) => (
-                    <OptionButton key={item} active={tone === item} onClick={() => setTone(item)}>
-                      {item}
-                    </OptionButton>
-                  ))}
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#8A857A]">
+                    Tone
+                  </span>
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    {tones.map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => setTone(item)}
+                        className={`rounded-xl border px-3 py-2.5 text-xs font-bold transition-all ${
+                          tone === item
+                            ? "border-[#1A1A1A] bg-[#1A1A1A] text-white"
+                            : "border-black/[0.05] bg-white/70 text-[#6B6B6B] hover:bg-white hover:text-[#1A1A1A]"
+                        }`}
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={handleGenerate}
-                disabled={isGenerating || !jobPost.trim()}
+                disabled={isGenerating || !jobPost.trim() || credits <= 0}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#1A1A1A] px-7 py-4 text-sm font-bold text-white shadow-[0_14px_28px_-12px_rgba(26,26,26,0.75)] transition-all hover:-translate-y-0.5 hover:bg-[#242424] hover:shadow-[0_18px_34px_-14px_rgba(26,26,26,0.85)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
               >
                 {isGenerating ? (
                   "Generating..."
+                ) : credits <= 0 ? (
+                  "Out of Credits"
                 ) : (
                   <>
                     <Zap className="h-4 w-4 fill-current" />
@@ -623,41 +815,87 @@ export function Workspace() {
               </button>
             </div>
           </div>
+        </aside>
 
-          <div className="rounded-[32px] border border-black/[0.04] bg-white p-5 sm:p-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2">
-                <Clipboard className="h-5 w-5 text-[#4CAF50]" />
-                <h2 className="text-xl font-bold tracking-[-0.02em]">Generated proposal</h2>
+        {/* Column 3: Generated Proposal Output */}
+        <section className="rounded-[34px] border border-white bg-white/70 p-4 shadow-[0_30px_90px_-58px_rgba(0,0,0,0.15)] flex-1">
+          <div className="rounded-[28px] border border-black/[0.04] bg-white p-5 sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-2xl font-bold tracking-[-0.03em]">Generated proposal</h2>
+                <p className="mt-1 text-sm text-[#8A857A]">
+                  Copy-ready proposal sections appear here after generation.
+                </p>
               </div>
-              <div className="rounded-full bg-[#E8F5E9] px-4 py-2 text-xs font-bold text-[#2E7D32]">
-                {platform} / {tone}
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded-full bg-[#E8F5E9] px-4 py-2 text-xs font-bold text-[#2E7D32]">
+                  {platform}
+                </span>
+                <span className="rounded-full bg-[#F8F6EF] px-4 py-2 text-xs font-bold text-[#8A857A]">
+                  {tone}
+                </span>
               </div>
             </div>
 
-            <div className="mt-6 grid gap-4">
-              <OutputCard title="Opener" copyValue={output.opener}>
-                <p>{output.opener}</p>
-              </OutputCard>
-              <OutputCard title="Proposal" copyValue={output.proposal}>
-                <p>{output.proposal}</p>
-              </OutputCard>
-              <OutputCard title="CTA" copyValue={output.cta}>
-                <p>{output.cta}</p>
-              </OutputCard>
-              <OutputCard title="3 Client Questions" copyValue={questionCopy}>
-                <ol className="space-y-3">
-                  {output.questions.map((question, index) => (
-                    <li key={question} className="flex gap-3">
-                      <span className="font-bold text-[#4CAF50]">{index + 1}.</span>
-                      <span>{question}</span>
-                    </li>
-                  ))}
-                </ol>
-              </OutputCard>
-            </div>
+            {error && (
+              <div className="mt-6 p-5 rounded-[22px] border border-red-200 bg-red-50/50 text-red-800 text-sm leading-relaxed shadow-sm">
+                <span className="font-bold block mb-1">Generation failed</span>
+                {error}
+              </div>
+            )}
+
+            {!output && (
+              <div className="mt-6 flex min-h-[520px] items-center justify-center rounded-[26px] border border-dashed border-black/[0.08] bg-[#FBFAF6] p-8 text-center">
+                <div className="max-w-md">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-white shadow-[0_18px_44px_-30px_rgba(0,0,0,0.35)]">
+                    <WandSparkles className="h-6 w-6 text-[#4CAF50]" />
+                  </div>
+                  <h3 className="mt-6 text-3xl font-bold tracking-[-0.03em]">
+                    Your proposal draft will appear here.
+                  </h3>
+                  <p className="mt-3 leading-relaxed text-[#6B6B6B]">
+                    Fill in the brief, choose a platform and tone, then generate a structured pitch with an opener, proposal, CTA, and client questions.
+                  </p>
+                  <div className="mt-6 grid gap-2 sm:grid-cols-3">
+                    {["Opener", "Proposal", "Questions"].map((item) => (
+                      <div key={item} className="rounded-2xl bg-white/80 px-4 py-3 text-xs font-bold text-[#8A857A]">
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {output && (
+              <div className="mt-6 grid gap-4 xl:grid-cols-2">
+                <OutputCard title="Opener" copyValue={output.opener}>
+                  <p>{output.opener}</p>
+                </OutputCard>
+                <OutputCard title="CTA" copyValue={output.cta}>
+                  <p>{output.cta}</p>
+                </OutputCard>
+                <div className="xl:col-span-2">
+                  <OutputCard title="Proposal" copyValue={output.proposal}>
+                    <p>{output.proposal}</p>
+                  </OutputCard>
+                </div>
+                <div className="xl:col-span-2">
+                  <OutputCard title="3 Client Questions" copyValue={questionCopy}>
+                    <ol className="space-y-3">
+                      {output.questions.map((question, index) => (
+                        <li key={question} className="flex gap-3">
+                          <span className="font-bold text-[#4CAF50]">{index + 1}.</span>
+                          <span>{question}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </OutputCard>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        </section>
       </div>
     </section>
   );
