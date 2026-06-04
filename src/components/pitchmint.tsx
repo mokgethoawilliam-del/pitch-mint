@@ -63,6 +63,13 @@ const features = [
   "Copy-ready output cards"
 ];
 
+// Lemon Squeezy variant IDs — set these in your Vercel env vars.
+// Find them in your LS Dashboard → Products → your product → Variants.
+const LS_VARIANT_IDS: Record<string, string> = {
+  freelancer: process.env.NEXT_PUBLIC_LS_FREELANCER_VARIANT_ID || "",
+  studio: process.env.NEXT_PUBLIC_LS_STUDIO_VARIANT_ID || "",
+};
+
 const pricingPreview = [
   {
     name: "Starter",
@@ -429,16 +436,20 @@ export function PricingSection({ expanded = false }: { expanded?: boolean }) {
     }
     setLoadingId(packId);
     try {
-      const res = await fetch('/api/stripe/checkout', {
+      // Route to Lemon Squeezy by default; Stripe route stays intact as fallback.
+      const variantId = LS_VARIANT_IDS[packId];
+      const res = await fetch('/api/lemonsqueezy/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packId })
+        body: JSON.stringify({ packId, variantId })
       });
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
       } else if (data.error === 'Unauthorized') {
         window.location.href = '/login?redirect=/pricing';
+      } else {
+        console.error('Checkout error:', data.error);
       }
     } catch (err) {
       console.error(err);
