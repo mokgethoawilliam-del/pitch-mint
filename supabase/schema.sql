@@ -65,12 +65,13 @@ create trigger on_auth_user_created
   for each row execute procedure public.handle_new_user();
 
 -- ────────────────────────────────────────────────
--- PAYMENTS TABLE  (Stripe audit trail)
+-- PAYMENTS TABLE  (Multi-Provider audit trail)
 -- ────────────────────────────────────────────────
 create table if not exists public.payments (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
-  stripe_session_id text not null unique,
+  provider text not null default 'stripe', -- 'stripe' or 'lemonsqueezy'
+  provider_order_id text not null unique, -- Stripe Session ID or Lemon Squeezy Order ID
   pack_id text not null,
   credits_added integer not null,
   amount_cents integer not null,

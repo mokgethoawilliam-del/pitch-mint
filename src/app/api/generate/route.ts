@@ -76,8 +76,44 @@ Ensure the JSON is well-formed. Do not enclose the output in markdown code block
     let result: ProposalOutput | null = null;
     let providerUsed = "";
 
-    // 1. Try Gemini
-    if (process.env.GEMINI_API_KEY) {
+    // 1. Try Groq (Primary)
+    if (process.env.GROQ_API_KEY) {
+      try {
+        console.log("Attempting generation using Groq API...");
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+            response_format: { type: "json_object" },
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const textResponse = data.choices?.[0]?.message?.content;
+          if (textResponse) {
+            result = JSON.parse(textResponse);
+            providerUsed = "Groq (Llama-3.3)";
+            console.log("Groq API call successful!");
+          }
+        } else {
+          console.error("Groq API returned non-OK status:", response.status, await response.text());
+        }
+      } catch (err) {
+        console.error("Groq API call failed with error:", err);
+      }
+    }
+
+    // 2. Try Gemini (Fallback)
+    if (!result && process.env.GEMINI_API_KEY) {
       try {
         console.log("Attempting generation using Gemini API...");
         const response = await fetch(
@@ -130,42 +166,6 @@ Ensure the JSON is well-formed. Do not enclose the output in markdown code block
         }
       } catch (err) {
         console.error("Gemini API call failed with error:", err);
-      }
-    }
-
-    // 2. Try Groq (Fallback 1)
-    if (!result && process.env.GROQ_API_KEY) {
-      try {
-        console.log("Attempting generation using Groq API...");
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt },
-            ],
-            response_format: { type: "json_object" },
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const textResponse = data.choices?.[0]?.message?.content;
-          if (textResponse) {
-            result = JSON.parse(textResponse);
-            providerUsed = "Groq (Llama-3.3)";
-            console.log("Groq API call successful!");
-          }
-        } else {
-          console.error("Groq API returned non-OK status:", response.status, await response.text());
-        }
-      } catch (err) {
-        console.error("Groq API call failed with error:", err);
       }
     }
 

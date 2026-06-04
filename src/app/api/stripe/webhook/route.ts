@@ -49,7 +49,8 @@ export async function POST(req: Request) {
     // 1. Log payment for audit trail
     const { error: paymentError } = await supabaseAdmin.from('payments').insert({
       user_id: userId,
-      stripe_session_id: session.id,
+      provider: 'stripe',
+      provider_order_id: session.id,
       pack_id: packId,
       credits_added: creditsToAdd,
       amount_cents: session.amount_total || 0,
