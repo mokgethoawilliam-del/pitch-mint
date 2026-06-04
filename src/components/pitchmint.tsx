@@ -435,6 +435,17 @@ export function PricingSection({ expanded = false }: { expanded?: boolean }) {
       return;
     }
     setLoadingId(packId);
+
+    // ── DEMO MODE ──────────────────────────────────────────────────────────
+    // Set NEXT_PUBLIC_DEMO_MODE=true in Vercel to demo the payment flow
+    // without needing a live payment processor. Perfect for screen recordings.
+    if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
+      await new Promise((r) => setTimeout(r, 1500)); // realistic loading feel
+      window.location.href = `/payment-success?pack=${packId}&demo=true`;
+      return;
+    }
+    // ── END DEMO MODE ───────────────────────────────────────────────────────
+
     try {
       // Route to Lemon Squeezy by default; Stripe route stays intact as fallback.
       const variantId = LS_VARIANT_IDS[packId];
